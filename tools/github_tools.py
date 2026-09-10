@@ -3,6 +3,8 @@ from langchain_core.tools import tool
 from tools.github_client import github
 from rag.retriever import CodeRetriever
 
+from rag.index_service import index_repository as run_index
+
 
 @tool
 def get_repository_info(owner:str, repo:str) -> str:
@@ -92,3 +94,18 @@ def search_repository_code(query : str, repository : str) -> str:
         )
 
     return "\n---\n".join(results)
+
+@tool
+def index_github_repository(owner: str, repo: str) -> str:
+    """Index a GitHub repository so its source code can be searched using RAG."""
+
+    try:
+        result = run_index(owner, repo)
+
+        return (
+            f"Successfully indexed {result['repository']}."
+            f"Processed {result['files']} files and"
+            f"generated {result['chunks']} chunks."
+        )
+    except Exception as err:
+        return f"Unable to index repository: {err}"

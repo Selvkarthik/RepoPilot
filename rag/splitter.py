@@ -5,7 +5,7 @@ splitter = RecursiveCharacterTextSplitter(
     chunk_overlap = 200
 )
 
-def split_documnts(documents):
+def split_documents(documents):
     chunks = splitter.split_documents(documents)
 
     counters = {}

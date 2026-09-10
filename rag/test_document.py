@@ -1,9 +1,5 @@
-from tools.github_tools import search_repository_code
+from rag.index_service import index_repository
 
-
-result = search_repository_code.invoke({
-    "query": "How does the application connect to the database?",
-    "repository": "selvkarthik/DocQuery"
-})
+result = index_repository('selvkarthik', 'DocQuery')
 
 print(result)
