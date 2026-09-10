@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from tools.github_tools import (get_repository_info, 
-                                get_repository_structure, get_file_content, get_directory_contents)
+                                get_repository_structure, get_file_content, get_directory_contents,
+                                search_repository_code)
 from langchain_openrouter import ChatOpenRouter
 from langchain.agents import create_agent
 import os
@@ -16,7 +17,8 @@ tools = [
     get_repository_info,
     get_repository_structure,
     get_file_content,
-    get_directory_contents
+    get_directory_contents,
+    search_repository_code
     ]
 
 agent = create_agent(

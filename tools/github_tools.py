@@ -1,15 +1,12 @@
-from dotenv import load_dotenv
 from langchain_core.tools import tool
-from github import Github
-import os
 
-load_dotenv()
+from tools.github_client import github
+from rag.retriever import CodeRetriever
+
 
 @tool
 def get_repository_info(owner:str, repo:str) -> str:
     """Get basic information about a GitHub repository."""
-
-    github = Github(os.getenv("GITHUB_TOKEN"))
 
     repository = github.get_repo(f"{owner}/{repo}")
 
@@ -27,8 +24,6 @@ def get_repository_info(owner:str, repo:str) -> str:
 def get_repository_structure(owner:str, repo:str) -> str:
     """Get the file and folder structure of a GitHub repository"""
 
-    github = Github(os.getenv("GITHUB_TOKEN"))
-
     repository = github.get_repo(f"{owner}/{repo}")
 
     contents = repository.get_contents("")
@@ -44,7 +39,6 @@ def get_repository_structure(owner:str, repo:str) -> str:
 def get_file_content(owner:str, repo:str, path:str) -> str:
     """Get the content of a specific file from a GitHub repository"""
     try:
-        github = Github(os.getenv("GITHUB_TOKEN"))
         repository = github.get_repo(f"{owner}/{repo}")
         file = repository.get_contents(path)
         content = file.decoded_content.decode('utf_8')
@@ -56,7 +50,6 @@ def get_file_content(owner:str, repo:str, path:str) -> str:
 def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
     """Get directory contents"""
     try:
-        github = Github(os.getenv("GITHUB_TOKEN"))
         respository = github.get_repo(f"{owner}/{repo}")
         contents = respository.get_contents(path)
         result = []
@@ -67,3 +60,35 @@ def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
         return "\n".join(result)
     except Exception as err:
         return f"Unable to retrieve directory: {err}"
+
+@tool
+def search_repository_code(query : str, repository : str) -> str:
+    """
+    Search the indexed source of a GitHub repository.
+    Use this tool when you need to understand the implementation
+    or contents of source files.
+    """
+
+    retriever = CodeRetriever(
+        repository=repository,
+        k=3
+    )
+
+    documents = retriever.invoke(query)
+
+    if not documents:
+        return "No relevant code was found."
+
+    results = []
+
+    for document in documents:
+        results.append(
+            f"""
+            File: {document.metadata['file_path']}
+            Language: {document.metadata['language']}
+            Chunk: {document.metadata['chunk_index']}
+            {document.page_content}
+            """
+        )
+
+    return "\n---\n".join(results)
