@@ -69,6 +69,7 @@ class CodeRepository:
                         file_path
                     )
                 )
+                deleted_chunks = cursor.rowcount
 
                 cursor.execute(
                     """
@@ -83,6 +84,8 @@ class CodeRepository:
                 )
 
             connection.commit()
+
+        return deleted_chunks
 
     def save_file(
         self,

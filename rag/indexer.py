@@ -41,7 +41,7 @@ def get_repository_files(owner:str, repo:str):
     result = []
 
     for file in files:
-        content = file.decode_content.decode('utf-8')
+        content = file.decoded_content.decode('utf-8')
         content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
 
         result.append({

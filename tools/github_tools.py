@@ -1,9 +1,24 @@
 from langchain_core.tools import tool
 
 from tools.github_client import github
-from rag.retriever import CodeRetriever
-
 from rag.index_service import index_repository as run_index
+
+
+def get_code_retriever(repository: str, k: int = 3):
+    """Create a retriever only when code search is requested."""
+    from rag.retriever import CodeRetriever
+
+    return CodeRetriever(repository=repository, k=k)
+
+
+def split_repository_name(repository: str):
+    """Validate and split the owner/repository form used by GitHub."""
+    owner, separator, repo = repository.partition("/")
+
+    if not separator or not owner or not repo or "/" in repo:
+        raise ValueError("Repository must use the 'owner/repository' format.")
+
+    return owner, repo
 
 
 @tool
@@ -66,20 +81,23 @@ def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
 @tool
 def search_repository_code(query : str, repository : str) -> str:
     """
-    Search the indexed source of a GitHub repository.
-    Use this tool when you need to understand the implementation
-    or contents of source files.
+    Synchronize and search the source code of a GitHub repository.
+    The repository must use the 'owner/repository' format. Use this tool
+    for implementation questions; it keeps the search index current first.
     """
 
-    retriever = CodeRetriever(
-        repository=repository,
-        k=3
-    )
-
-    documents = retriever.invoke(query)
+    try:
+        owner, repo = split_repository_name(repository)
+        sync_result = run_index(owner, repo)
+        retriever = get_code_retriever(repository, k=3)
+        documents = retriever.invoke(query)
+    except Exception as err:
+        return f"Unable to prepare {repository} for code search: {err}"
 
     if not documents:
-        return "No relevant code was found."
+        if sync_result["status"] == "updated":
+            return "Repository was synchronized, but no searchable code was found."
+        return "The repository is current, but no relevant code was found."
 
     results = []
 
@@ -97,15 +115,24 @@ def search_repository_code(query : str, repository : str) -> str:
 
 @tool
 def index_github_repository(owner: str, repo: str) -> str:
-    """Index a GitHub repository so its source code can be searched using RAG."""
+    """Synchronize a GitHub repository so its source code can be searched using RAG."""
 
     try:
         result = run_index(owner, repo)
 
+        if result["status"] == "up_to_date":
+            return (
+                f"Repository {result['repository']} is already up to date. "
+                "No files or chunks changed."
+            )
+
         return (
-            f"Successfully indexed {result['repository']}."
-            f"Processed {result['files']} files and"
-            f"generated {result['chunks']} chunks."
+            f"Repository {result['repository']} synchronized.\n"
+            f"Files — added: {result['files_added']}, "
+            f"updated: {result['files_updated']}, "
+            f"deleted: {result['files_deleted']}.\n"
+            f"Chunks — created: {result['chunks_created']}, "
+            f"deleted: {result['chunks_deleted']}."
         )
     except Exception as err:
         return f"Unable to index repository: {err}"
