@@ -1,9 +1,6 @@
 from pathlib import Path
-from dotenv import load_dotenv
 from tools.github_client import github
-import os
-
-load_dotenv()
+import hashlib
 
 supported_extensions = {".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".cpp", ".c", '.go', ".rs", ".php", ".cs"}
 LANGUAGE_MAP = {
@@ -41,11 +38,29 @@ def get_repository_files(owner:str, repo:str):
 
     files = _get_files(repository)
 
-    return [
-        {
+    result = []
+
+    for file in files:
+        content = file.decode_content.decode('utf-8')
+        content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
+
+        result.append({
             "path" : file.path,
-            "content" : file.decoded_content.decode('utf-8'),
-            "language" : LANGUAGE_MAP.get(Path(file.path).suffix.lower())
-        }
-        for file in files
-    ]
+            "content" : content,
+            "language" : LANGUAGE_MAP.get(Path(file.path).suffix.lower()),
+            "content_hash" : content_hash
+        })
+
+    return result
+
+def get_repository_state(owner:str, repo:str):
+    repository = github.get_repo(f"{owner}/{repo}")
+    branch = repository.default_branch
+    branch_info = repository.get_branch(branch)
+
+    return {
+        "owner" : owner,
+        "repo" : repo,
+        "branch" : branch,
+        "commit_sha" : branch_info.commit.sha
+    }
