@@ -17,8 +17,7 @@ tools = [
     get_repository_info,
     get_repository_structure,
     get_directory_contents,
-    search_repository_code,
-    index_github_repository
+    search_repository_code
     ]
 
 agent = create_agent(

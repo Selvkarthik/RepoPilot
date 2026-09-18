@@ -81,23 +81,21 @@ def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
 @tool
 def search_repository_code(query : str, repository : str) -> str:
     """
-    Synchronize and search the source code of a GitHub repository.
-    The repository must use the 'owner/repository' format. Use this tool
-    for implementation questions; it keeps the search index current first.
+    Search the indexed source code of a GitHub repository.
+
+    The repository must use the 'owner/repository' format.
+    Repository synchronization is handled separately by the
+    background indexing system.
     """
 
     try:
-        owner, repo = split_repository_name(repository)
-        sync_result = run_index(owner, repo)
         retriever = get_code_retriever(repository, k=3)
         documents = retriever.invoke(query)
     except Exception as err:
         return f"Unable to prepare {repository} for code search: {err}"
 
     if not documents:
-        if sync_result["status"] == "updated":
-            return "Repository was synchronized, but no searchable code was found."
-        return "The repository is current, but no relevant code was found."
+        return "No relevant code was found in the repository."
 
     results = []
 
