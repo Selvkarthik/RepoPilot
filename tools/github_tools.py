@@ -5,7 +5,7 @@ from tools.github_client import github
 from rag.cache import (
     build_cache_key,
     get_cached_result,
-    set_cahed_result
+    set_cached_result
 )
 
 

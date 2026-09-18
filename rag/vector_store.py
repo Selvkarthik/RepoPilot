@@ -24,9 +24,9 @@ def store_chunks(chunks):
                     ON CONFLICT (repository, file_path, chunk_index)
                     DO UPDATE SET
                     language = EXCLUDED.language,
-                    content = EXCLUDED.content
-                    content_hash = EXCLUDED.content_hash
-                    embedding = EXCLUDED.embedding
+                    content = EXCLUDED.content,
+                    content_hash = EXCLUDED.content_hash,
+                    embedding = EXCLUDED.embedding,
                 """,
                 (
                     chunk.metadata['repository'],

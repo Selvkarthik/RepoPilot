@@ -3,10 +3,8 @@ from rag.database import get_connection
 
 class CodeRepository:
 
-    def __init__(self, repository: str, k: int = 3):
-        self.repository = repository
-        self.k = k
-        self.repository_db = CodeRepository(repository)
+    def __init__(self):
+        pass
 
     def similarity_search(
         self,

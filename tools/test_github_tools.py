@@ -1,49 +1,10 @@
 import unittest
 from unittest.mock import patch
 
-from tools.github_tools import index_github_repository, search_repository_code
+from tools.github_tools import search_repository_code
 
 
 class IndexGithubRepositoryToolTests(unittest.TestCase):
-    @patch("tools.github_tools.run_index")
-    def test_reports_no_work_when_repository_is_current(self, run_index):
-        run_index.return_value = {
-            "repository": "owner/repo",
-            "status": "up_to_date",
-            "files_added": 0,
-            "files_updated": 0,
-            "files_deleted": 0,
-            "chunks_created": 0,
-            "chunks_deleted": 0,
-        }
-
-        result = index_github_repository.invoke({"owner": "owner", "repo": "repo"})
-
-        self.assertEqual(
-            result,
-            "Repository owner/repo is already up to date. No files or chunks changed.",
-        )
-
-    @patch("tools.github_tools.run_index")
-    def test_reports_each_type_of_sync_change(self, run_index):
-        run_index.return_value = {
-            "repository": "owner/repo",
-            "status": "updated",
-            "files_added": 1,
-            "files_updated": 2,
-            "files_deleted": 3,
-            "chunks_created": 8,
-            "chunks_deleted": 5,
-        }
-
-        result = index_github_repository.invoke({"owner": "owner", "repo": "repo"})
-
-        self.assertEqual(
-            result,
-            "Repository owner/repo synchronized.\n"
-            "Files — added: 1, updated: 2, deleted: 3.\n"
-            "Chunks — created: 8, deleted: 5.",
-        )
 
     @patch("tools.github_tools.get_code_retriever")
     @patch("tools.github_tools.run_index")

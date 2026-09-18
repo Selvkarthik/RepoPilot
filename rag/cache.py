@@ -47,7 +47,7 @@ def get_cached_result(key : str):
 
     return json.loads(value)
 
-def set_cahed_result(
+def set_cached_result(
         key : str,
         result,
         ttl : int = CACHE_TTL
