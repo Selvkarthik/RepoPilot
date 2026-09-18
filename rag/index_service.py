@@ -75,6 +75,13 @@ def index_repository(owner: str, repo: str):
             else:
                 files_updated += 1
 
+    print("Stored files:", len(stored_files))
+    print("GitHub files:", len(files))
+    print("Files to index:", [file["path"] for file in files_to_index])
+    print("Files added:", files_added)
+    print("Files updated:", files_updated)
+    print("Files deleted:", len(deleted_files))
+
     # Process changed/new files
     total_chunks = 0
 
