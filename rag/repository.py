@@ -3,6 +3,11 @@ from rag.database import get_connection
 
 class CodeRepository:
 
+    def __init__(self, repository: str, k: int = 3):
+        self.repository = repository
+        self.k = k
+        self.repository_db = CodeRepository(repository)
+
     def similarity_search(
         self,
         repository: str,
@@ -123,3 +128,29 @@ class CodeRepository:
                 )
 
             connection.commit()
+
+    def get_repository_commit(
+            self,
+            repository : str
+    ):
+
+        owner, repo = repository.split("/", 1)
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT commit_sha
+                    FROM repositories
+                    WHERE owner = %s
+                    AND repo = %s
+                    """,
+                    (owner, repo)
+                )
+
+                result = cursor.fetchone()
+
+        if result is None:
+            return None
+
+        return result[0]

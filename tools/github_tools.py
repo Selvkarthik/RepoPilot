@@ -2,6 +2,12 @@ from langchain_core.tools import tool
 
 from tools.github_client import github
 
+from rag.cache import (
+    build_cache_key,
+    get_cached_result,
+    set_cahed_result
+)
+
 
 def get_code_retriever(repository: str, k: int = 3):
     """Create a retriever only when code search is requested."""

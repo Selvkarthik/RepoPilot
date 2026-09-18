@@ -21,8 +21,12 @@ def store_chunks(chunks):
                     INSERT INTO code_chunks
                     (repository, file_path, language, chunk_index, content, content_hash, embedding)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (repository, content_hash)
-                    DO NOTHING
+                    ON CONFLICT (repository, file_path, chunk_index)
+                    DO UPDATE SET
+                    language = EXCLUDED.language,
+                    content = EXCLUDED.content
+                    content_hash = EXCLUDED.content_hash
+                    embedding = EXCLUDED.embedding
                 """,
                 (
                     chunk.metadata['repository'],
