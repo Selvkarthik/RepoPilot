@@ -1,7 +1,6 @@
 from langchain_core.tools import tool
 
 from tools.github_client import github
-from rag.index_service import index_repository as run_index
 
 
 def get_code_retriever(repository: str, k: int = 3):
@@ -110,27 +109,3 @@ def search_repository_code(query : str, repository : str) -> str:
         )
 
     return "\n---\n".join(results)
-
-@tool
-def index_github_repository(owner: str, repo: str) -> str:
-    """Synchronize a GitHub repository so its source code can be searched using RAG."""
-
-    try:
-        result = run_index(owner, repo)
-
-        if result["status"] == "up_to_date":
-            return (
-                f"Repository {result['repository']} is already up to date. "
-                "No files or chunks changed."
-            )
-
-        return (
-            f"Repository {result['repository']} synchronized.\n"
-            f"Files — added: {result['files_added']}, "
-            f"updated: {result['files_updated']}, "
-            f"deleted: {result['files_deleted']}.\n"
-            f"Chunks — created: {result['chunks_created']}, "
-            f"deleted: {result['chunks_deleted']}."
-        )
-    except Exception as err:
-        return f"Unable to index repository: {err}"

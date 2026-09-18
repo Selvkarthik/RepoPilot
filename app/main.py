@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Header, Request
-from typing import Optional, Any
+from fastapi import FastAPI, HTTPException, Header, Request
+from typing import Optional
 from dotenv import load_dotenv
 import hashlib
 import hmac
@@ -68,9 +68,8 @@ def ask_question(request : AskRequest):
         ) from err
 
 @app.post("/webhooks/github")
-async def githbub_webhoob(
+async def githbub_webhook(
     request : Request,
-    background_tasks : BackgroundTasks,
     x_github_event : Optional[str] = Header(default=None),
     x_hub_signature_256 : Optional[str] = Header(default=None)
 ):
@@ -97,7 +96,7 @@ async def githbub_webhoob(
     if not repository:
         raise HTTPException(
             status_code=400,
-            detail='Missing respository information.'
+            detail='Missing repository information.'
         )
 
     owner = repository.get("owner", {}).get("login")
@@ -106,12 +105,12 @@ async def githbub_webhoob(
     if not owner or not repo:
         raise HTTPException(
             status_code=404,
-            detail='Invalid respository information.'
+            detail='Invalid repository information.'
         )
 
     sync_repository.delay(owner, repo)
 
     return {
-        "status" : "Accepted",
+        "status" : "accepted",
         "repository" : f"{owner}/{repo}"
     }
