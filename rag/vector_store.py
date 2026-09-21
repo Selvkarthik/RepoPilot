@@ -26,7 +26,7 @@ def store_chunks(chunks):
                     language = EXCLUDED.language,
                     content = EXCLUDED.content,
                     content_hash = EXCLUDED.content_hash,
-                    embedding = EXCLUDED.embedding,
+                    embedding = EXCLUDED.embedding
                 """,
                 (
                     chunk.metadata['repository'],

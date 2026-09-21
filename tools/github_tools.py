@@ -2,6 +2,9 @@ from langchain_core.tools import tool
 
 from tools.github_client import github
 
+from rag.repository import CodeRepository
+from fastapi import HTTPException
+
 from rag.cache import (
     build_cache_key,
     get_cached_result,
@@ -92,15 +95,57 @@ def search_repository_code(query : str, repository : str) -> str:
     Repository synchronization is handled separately by the
     background indexing system.
     """
+    print(f">>> search_repository_code CALLED | query={query[:80]}")
 
     try:
+        db = CodeRepository()
+
+        commit_sha = db.get_repository_commit(repository)
+
+        if not commit_sha:
+            return f"Repository {repository} has not been indexed yet."
+
+        print(f"Repository: [{repository}]")
+        print(f"Commit SHA: [{commit_sha}]")
+        print(f"Query: [{query}]")
+
+        cache_key = build_cache_key(
+            repository,
+            commit_sha,
+            query
+        )
+
+        print(f"Cache key: [{cache_key}]")
+
+        cached_result = get_cached_result(cache_key)
+
+        if cached_result is not None:
+            print(f"Cache HIT: {repository}")
+            return cached_result
+
+        print(f"Cache MISS: {repository}")
+
         retriever = get_code_retriever(repository, k=3)
         documents = retriever.invoke(query)
+
     except Exception as err:
-        return f"Unable to prepare {repository} for code search: {err}"
+        import traceback
+
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"Unable to prepare {repository} for code search: {err}"
+        ) from err
 
     if not documents:
-        return "No relevant code was found in the repository."
+        result = "No relevant code was found in the repository."
+
+        set_cached_result(
+            cache_key, result,
+        )
+
+        return result
 
     results = []
 
@@ -114,4 +159,8 @@ def search_repository_code(query : str, repository : str) -> str:
             """
         )
 
-    return "\n---\n".join(results)
+    result = "\n---\n".join(results)
+
+    set_cached_result(cache_key, result,)
+
+    return result
