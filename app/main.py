@@ -68,7 +68,7 @@ def ask_question(request : AskRequest):
         ) from err
 
 @app.post("/webhooks/github")
-async def githbub_webhook(
+async def github_webhook(
     request : Request,
     x_github_event : Optional[str] = Header(default=None),
     x_hub_signature_256 : Optional[str] = Header(default=None)

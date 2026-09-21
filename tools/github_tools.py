@@ -61,17 +61,6 @@ def get_repository_structure(owner:str, repo:str) -> str:
     return "\n".join(result)
 
 @tool
-def get_file_content(owner:str, repo:str, path:str) -> str:
-    """Get the content of a specific file from a GitHub repository"""
-    try:
-        repository = github.get_repo(f"{owner}/{repo}")
-        file = repository.get_contents(path)
-        content = file.decoded_content.decode('utf_8')
-        return content
-    except Exception as err:
-        return f"Unable to retrieve file: {err}"
-
-@tool
 def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
     """Get directory contents"""
     try:
@@ -95,7 +84,6 @@ def search_repository_code(query : str, repository : str) -> str:
     Repository synchronization is handled separately by the
     background indexing system.
     """
-    print(f">>> search_repository_code CALLED | query={query[:80]}")
 
     try:
         db = CodeRepository()
@@ -105,17 +93,11 @@ def search_repository_code(query : str, repository : str) -> str:
         if not commit_sha:
             return f"Repository {repository} has not been indexed yet."
 
-        print(f"Repository: [{repository}]")
-        print(f"Commit SHA: [{commit_sha}]")
-        print(f"Query: [{query}]")
-
         cache_key = build_cache_key(
             repository,
             commit_sha,
             query
         )
-
-        print(f"Cache key: [{cache_key}]")
 
         cached_result = get_cached_result(cache_key)
 
