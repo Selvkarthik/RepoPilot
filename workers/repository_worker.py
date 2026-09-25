@@ -46,8 +46,8 @@ def sync_repository(self, owner: str, repo: str):
             )
 
         except MaxRetriesExceededError:
-            print(
-                f"Background sync permanently failed for "
-                f"{owner}/{repo}"
+            logger.error(
+                "Background repository sync failed permanently: repository=%s",
+                owner, repo,
+                exc_info=True,
             )
-            raise

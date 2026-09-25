@@ -80,7 +80,10 @@ def index_repository(owner: str, repo: str):
 
     logger.info("Stored files: %d", len(stored_files))
     logger.info("GitHub files: %d", len(files))
-    logger.info("Files to index: %s", files_to_index)
+    logger.info(
+    "Files to index: count=%d",
+    len(files_to_index),
+)
     logger.info(
             "Index changes: added=%d updated=%d deleted=%d",
             files_added,

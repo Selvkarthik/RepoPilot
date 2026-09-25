@@ -20,15 +20,15 @@ def evaluate_case(case: dict, k: int = 3) -> dict:
         if file_path not in retrieved_files:
             retrieved_files.append(file_path)
 
-        expected_files = set(case["expected_files"])
+    expected_files = set(case["expected_files"])
 
         # Rank of the first relevant file
-        first_relevant_rank = None
+    first_relevant_rank = None
 
-        for rank, file_path in enumerate(retrieved_files, start=1):
-            if file_path in expected_files:
-                first_relevant_rank = rank
-                break
+    for rank, file_path in enumerate(retrieved_files, start=1):
+        if file_path in expected_files:
+            first_relevant_rank = rank
+            break
 
     return {
         "question": case["question"],

@@ -3,9 +3,6 @@ from rag.database import get_connection
 
 class CodeRepository:
 
-    def __init__(self):
-        pass
-
     def similarity_search(
         self,
         repository: str,

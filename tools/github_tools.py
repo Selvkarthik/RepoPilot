@@ -68,8 +68,8 @@ def get_repository_structure(owner:str, repo:str) -> str:
 def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
     """Get directory contents"""
     try:
-        respository = github.get_repo(f"{owner}/{repo}")
-        contents = respository.get_contents(path)
+        repository = github.get_repo(f"{owner}/{repo}")
+        contents = repository.get_contents(path)
         result = []
 
         for item in contents:
