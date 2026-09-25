@@ -10,8 +10,10 @@ from langchain_core.messages import HumanMessage
 
 from .models import AskResponse, AskRequest
 from workers.repository_worker import sync_repository
+from core.logging_config import setup_logging
 
 load_dotenv()
+setup_logging()
 
 app = FastAPI(
     title='RepoPilot',

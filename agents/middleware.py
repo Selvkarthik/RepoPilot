@@ -1,5 +1,10 @@
+import logging
+
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import ToolMessage
+
+
+logger = logging.getLogger(__name__)
 
 
 class SearchLimitMiddleware(AgentMiddleware):
@@ -19,7 +24,16 @@ class SearchLimitMiddleware(AgentMiddleware):
             )
         )
 
+        logger.info(
+            "Repository search requested: current_calls=%d max_calls=2",
+            search_calls,
+        )
+
         if search_calls >= 2:
+            logger.warning(
+                "Repository search limit reached: max_calls=2"
+            )
+
             return ToolMessage(
                 content=(
                     "You have already performed two repository searches. "

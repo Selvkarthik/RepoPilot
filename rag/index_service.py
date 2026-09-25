@@ -3,6 +3,9 @@ from rag.documents import create_documents
 from rag.splitter import split_documents
 from rag.database import get_connection
 from rag.repository import CodeRepository
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def store_chunks(chunks):
@@ -75,12 +78,15 @@ def index_repository(owner: str, repo: str):
             else:
                 files_updated += 1
 
-    print("Stored files:", len(stored_files))
-    print("GitHub files:", len(files))
-    print("Files to index:", [file["path"] for file in files_to_index])
-    print("Files added:", files_added)
-    print("Files updated:", files_updated)
-    print("Files deleted:", len(deleted_files))
+    logger.info("Stored files: %d", len(stored_files))
+    logger.info("GitHub files: %d", len(files))
+    logger.info("Files to index: %s", files_to_index)
+    logger.info(
+            "Index changes: added=%d updated=%d deleted=%d",
+            files_added,
+            files_updated,
+            len(deleted_files)
+        )
 
     # Process changed/new files
     total_chunks = 0

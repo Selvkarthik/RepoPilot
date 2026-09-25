@@ -11,6 +11,10 @@ from rag.cache import (
     set_cached_result
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_code_retriever(repository: str, k: int = 3):
     """Create a retriever only when code search is requested."""
@@ -102,18 +106,20 @@ def search_repository_code(query : str, repository : str) -> str:
         cached_result = get_cached_result(cache_key)
 
         if cached_result is not None:
-            print(f"Cache HIT: {repository}")
+            logger.info("CACHE HIT: %s", repository)
             return cached_result
 
-        print(f"Cache MISS: {repository}")
+        logger.info("CACHE MISS: %s", repository)
 
         retriever = get_code_retriever(repository, k=3)
         documents = retriever.invoke(query)
 
     except Exception as err:
-        import traceback
 
-        traceback.print_exc()
+        logger.exception(
+            "Unable to prepare repository for code search: %s",
+            repository,
+        )
 
         raise HTTPException(
             status_code=502,
