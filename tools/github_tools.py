@@ -75,8 +75,9 @@ def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
             result.append(f"{item.type} : {item.path}")
 
         return "\n".join(result)
-    except Exception as err:
-        return f"Unable to retrieve directory: {err}"
+    except Exception:
+        logger.exception("Unable to retrieve directory contents for %s/%s path=%s", owner, repo, path)
+        return "Unable to retrieve directory contents."
 
 MAX_SEARCH_OUTPUT_CHARS = 12000
 

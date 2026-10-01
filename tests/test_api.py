@@ -103,6 +103,8 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 502)
         self.assertIn("Unable to answer repository question", response.json()["detail"])
+        # Verify internal error detail is NOT exposed
+        self.assertNotIn("OpenRouter", response.json()["detail"])
 
 
 if __name__ == "__main__":

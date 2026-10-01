@@ -64,16 +64,15 @@ def ask_question(request : AskRequest):
             answer=response['messages'][-1].content
         )
 
-    except Exception as err:
+    except Exception:
         logger.exception(
-            "Failed to answer question for repository=%s: %s",
+            "Failed to answer question for repository=%s",
             request.repository,
-            err,
         )
         raise HTTPException(
             status_code=502,
-            detail=f'Unable to answer repository question: {err}',
-        ) from err
+            detail="Unable to answer repository question. Please try again later.",
+        )
 
 @app.post("/webhooks/github")
 async def github_webhook(
