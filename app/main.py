@@ -1,19 +1,19 @@
-from fastapi import FastAPI, HTTPException, Header, Request
-from typing import Optional
-from dotenv import load_dotenv
 import hashlib
 import hmac
-import os
+import logging
+from typing import Optional
 
-from agents.agent import agent
+from fastapi import FastAPI, HTTPException, Header, Request
 from langchain_core.messages import HumanMessage
 
-from .models import AskResponse, AskRequest
-from workers.repository_worker import sync_repository
+from agents.agent import agent
+from core.config import settings
 from core.logging_config import setup_logging
+from .models import AskRequest, AskResponse
+from workers.repository_worker import sync_repository
 
-load_dotenv()
 setup_logging()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title='RepoPilot',
@@ -25,7 +25,7 @@ def verify_signature(
         payload : bytes,
         signature : str | None
 ) -> bool:
-    secret = os.getenv('GITHUB_WEBHOOK_SECRET')
+    secret = settings.GITHUB_WEBHOOK_SECRET
 
     if not secret or not signature:
         return False
@@ -50,6 +50,7 @@ def root():
 
 @app.post('/ask', response_model=AskResponse)
 def ask_question(request : AskRequest):
+    logger.info("Received /ask request: repository=%s", request.repository)
     try:
         message = HumanMessage(
             content=(
@@ -64,6 +65,11 @@ def ask_question(request : AskRequest):
         )
 
     except Exception as err:
+        logger.exception(
+            "Failed to answer question for repository=%s: %s",
+            request.repository,
+            err,
+        )
         raise HTTPException(
             status_code=502,
             detail=f'Unable to answer repository question: {err}',
@@ -75,17 +81,20 @@ async def github_webhook(
     x_github_event : Optional[str] = Header(default=None),
     x_hub_signature_256 : Optional[str] = Header(default=None)
 ):
+    logger.info("GitHub webhook received: event=%s", x_github_event)
     payload = await request.body()
 
     if not verify_signature(
         payload, x_hub_signature_256
     ):
+        logger.warning("Invalid GitHub webhook signature received.")
         raise HTTPException(
             status_code=401,
             detail='Invalid Webhook signature'
         )
     
     if x_github_event != 'push':
+        logger.info("Ignoring non-push event: %s", x_github_event)
         return {
             "status" : 'ignored',
             "reason" : "unsupported_event"
@@ -110,6 +119,7 @@ async def github_webhook(
             detail='Invalid repository information.'
         )
 
+    logger.info("Enqueued background sync for %s/%s", owner, repo)
     sync_repository.delay(owner, repo)
 
     return {

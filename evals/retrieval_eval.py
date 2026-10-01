@@ -1,5 +1,3 @@
-from collections import Counter
-
 from evals.dataset import EVAL_CASES
 from rag.retriever import CodeRetriever
 
@@ -22,7 +20,7 @@ def evaluate_case(case: dict, k: int = 3) -> dict:
 
     expected_files = set(case["expected_files"])
 
-        # Rank of the first relevant file
+    # Rank of the first relevant file
     first_relevant_rank = None
 
     for rank, file_path in enumerate(retrieved_files, start=1):
@@ -34,11 +32,11 @@ def evaluate_case(case: dict, k: int = 3) -> dict:
         "question": case["question"],
         "expected_files": list(expected_files),
         "retrieved_files": retrieved_files,
-        "hit_at_1": (
-            bool(retrieved_files)
-            and retrieved_files[0] in expected_files
+        "hit_at_1": first_relevant_rank == 1,
+        "hit_at_3": (
+            first_relevant_rank is not None
+            and first_relevant_rank <= 3
         ),
-        "hit_at_3": first_relevant_rank is not None,
         "reciprocal_rank": (
             1 / first_relevant_rank
             if first_relevant_rank is not None

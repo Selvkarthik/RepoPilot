@@ -6,7 +6,7 @@ from langchain_core.messages import ToolMessage
 
 logger = logging.getLogger(__name__)
 
-MAX_RESULT_CHARS = 120001
+MAX_RESULT_CHARS = 12000
 
 class SearchLimitMiddleware(AgentMiddleware):
     """Prevent excessive repository-code searches in one agent run."""
@@ -43,8 +43,18 @@ class SearchLimitMiddleware(AgentMiddleware):
                 ),
                 tool_call_id=request.tool_call["id"],
             )
-        
-        if len(result) > MAX_RESULT_CHARS:
-            result = result[:MAX_RESULT_CHARS] + "\n[Result truncated]"
 
-        return handler(request)
+        response = handler(request)
+
+        if isinstance(response, ToolMessage) and isinstance(response.content, str):
+            if len(response.content) > MAX_RESULT_CHARS:
+                response = ToolMessage(
+                    content=response.content[:MAX_RESULT_CHARS] + "\n[Result truncated]",
+                    tool_call_id=response.tool_call_id,
+                    name=getattr(response, "name", None),
+                    status=getattr(response, "status", "success"),
+                )
+        elif isinstance(response, str) and len(response) > MAX_RESULT_CHARS:
+            response = response[:MAX_RESULT_CHARS] + "\n[Result truncated]"
+
+        return response

@@ -1,8 +1,6 @@
-import os
-from dotenv import load_dotenv
 import psycopg
+from core.config import settings
 
-load_dotenv()
 
 def get_connection():
-    return psycopg.connect(os.getenv("DB_URL"))
+    return psycopg.connect(settings.DB_URL)

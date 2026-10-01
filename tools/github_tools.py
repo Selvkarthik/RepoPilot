@@ -3,7 +3,6 @@ from langchain_core.tools import tool
 from tools.github_client import github
 
 from rag.repository import CodeRepository
-from fastapi import HTTPException
 
 from rag.cache import (
     build_cache_key,
@@ -79,6 +78,9 @@ def get_directory_contents(owner:str, repo:str, path:str = "") -> str:
     except Exception as err:
         return f"Unable to retrieve directory: {err}"
 
+MAX_SEARCH_OUTPUT_CHARS = 12000
+
+
 @tool
 def search_repository_code(query : str, repository : str) -> str:
     """
@@ -106,24 +108,21 @@ def search_repository_code(query : str, repository : str) -> str:
         cached_result = get_cached_result(cache_key)
 
         if cached_result is not None:
-            logger.info("CACHE HIT: %s", repository)
+            logger.info("CACHE HIT: repo=%s query=%s", repository, query)
             return cached_result
 
-        logger.info("CACHE MISS: %s", repository)
+        logger.info("CACHE MISS: repo=%s query=%s", repository, query)
 
         retriever = get_code_retriever(repository, k=3)
         documents = retriever.invoke(query)
 
     except Exception as err:
-
         logger.exception(
             "Unable to prepare repository for code search: %s",
             repository,
         )
-
-        raise HTTPException(
-            status_code=502,
-            detail=f"Unable to prepare {repository} for code search: {err}"
+        raise RuntimeError(
+            f"Unable to prepare {repository} for code search: {err}"
         ) from err
 
     if not documents:
@@ -149,6 +148,9 @@ def search_repository_code(query : str, repository : str) -> str:
 
     result = "\n---\n".join(results)
 
-    set_cached_result(cache_key, result,)
+    if len(result) > MAX_SEARCH_OUTPUT_CHARS:
+        result = result[:MAX_SEARCH_OUTPUT_CHARS] + "\n[Result truncated]"
+
+    set_cached_result(cache_key, result)
 
     return result

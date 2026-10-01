@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: repopilot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: repopilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: repopilot_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: repopilot_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=postgresql://postgres:password@postgres:5432/repopilot
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - REDIS_CACHE_URL=redis://redis:6379/2
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-inclusionai/ling-3.0-flash-fin:free}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  worker:
+    build: .
+    container_name: repopilot_worker
+    restart: unless-stopped
+    environment:
+      - DB_URL=postgresql://postgres:password@postgres:5432/repopilot
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - REDIS_CACHE_URL=redis://redis:6379/2
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "workers.celery_app", "worker", "--loglevel=info"]
+
+volumes:
+  postgres_data:

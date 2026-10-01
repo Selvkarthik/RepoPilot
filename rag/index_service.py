@@ -32,106 +32,136 @@ def index_repository(owner: str, repo: str):
 
     repository = f"{owner}/{repo}"
 
-    github_state = get_repository_state(owner, repo)
-    stored_state = get_stored_repository_state(owner, repo)
+    try:
+        github_state = get_repository_state(owner, repo)
+        stored_state = get_stored_repository_state(owner, repo)
 
-    if (
-        stored_state
-        and stored_state[0] == github_state["branch"]
-        and stored_state[1] == github_state["commit_sha"]
-    ):
-        return build_index_result(repository, "up_to_date")
+        logger.info(
+            "Starting repository indexing: %s commit=%s",
+            repository,
+            github_state.get("commit_sha"),
+        )
 
-    # Get the current files from GitHub
-    files = get_repository_files(owner, repo)
+        if (
+            stored_state
+            and stored_state[0] == github_state["branch"]
+            and stored_state[1] == github_state["commit_sha"]
+        ):
+            logger.info(
+                "Repository indexing up to date: %s commit=%s",
+                repository,
+                github_state.get("commit_sha"),
+            )
+            return build_index_result(repository, "up_to_date")
 
-    # Get file hashes currently stored in DB
-    db = CodeRepository()
-    stored_files = db.get_file_hashes(repository)
+        # Get the current files from GitHub
+        files = get_repository_files(owner, repo)
 
-    current_paths = {
-        file["path"]
-        for file in files
-    }
+        # Get file hashes currently stored in DB
+        db = CodeRepository()
+        stored_files = db.get_file_hashes(repository)
 
-    # Files that disappeared from GitHub
-    deleted_files = set(stored_files.keys()) - current_paths
+        current_paths = {
+            file["path"]
+            for file in files
+        }
 
-    deleted_chunks = 0
+        # Files that disappeared from GitHub
+        deleted_files = set(stored_files.keys()) - current_paths
 
-    for file_path in deleted_files:
-        deleted_chunks += db.delete_file(repository, file_path)
+        deleted_chunks = 0
 
-    # Only new or changed files need to be re-indexed
-    files_to_index = []
-    files_added = 0
-    files_updated = 0
+        for file_path in deleted_files:
+            deleted_chunks += db.delete_file(repository, file_path)
 
-    for file in files:
+        # Only new or changed files need to be re-indexed
+        files_to_index = []
+        files_added = 0
+        files_updated = 0
 
-        old_hash = stored_files.get(file["path"])
+        for file in files:
 
-        if old_hash != file["content_hash"]:
-            files_to_index.append(file)
-            if old_hash is None:
-                files_added += 1
-            else:
-                files_updated += 1
+            old_hash = stored_files.get(file["path"])
 
-    logger.info("Stored files: %d", len(stored_files))
-    logger.info("GitHub files: %d", len(files))
-    logger.info(
-    "Files to index: count=%d",
-    len(files_to_index),
-)
-    logger.info(
+            if old_hash != file["content_hash"]:
+                files_to_index.append(file)
+                if old_hash is None:
+                    files_added += 1
+                else:
+                    files_updated += 1
+
+        logger.info("Stored files: %d", len(stored_files))
+        logger.info("GitHub files: %d", len(files))
+        logger.info(
+            "Files to index: count=%d",
+            len(files_to_index),
+        )
+        logger.info(
             "Index changes: added=%d updated=%d deleted=%d",
             files_added,
             files_updated,
             len(deleted_files)
         )
 
-    # Process changed/new files
-    total_chunks = 0
+        # Process changed/new files
+        total_chunks = 0
 
-    for file in files_to_index:
+        for file in files_to_index:
 
-        # Remove old chunks if this is an updated file
-        if file["path"] in stored_files:
-            deleted_chunks += db.delete_file(
-                repository,
-                file["path"]
+            # Remove old chunks if this is an updated file
+            if file["path"] in stored_files:
+                deleted_chunks += db.delete_file(
+                    repository,
+                    file["path"]
+                )
+
+            documents = create_documents(
+                [file],
+                repository
             )
 
-        documents = create_documents(
-            [file],
-            repository
+            chunks = split_documents(documents)
+
+            store_chunks(chunks)
+
+            db.save_file(
+                repository=repository,
+                file_path=file["path"],
+                language=file["language"],
+                content_hash=file["content_hash"]
+            )
+
+            total_chunks += len(chunks)
+
+        save_repository_state(github_state)
+
+        logger.info(
+            "Repository indexing completed: %s commit=%s added=%d updated=%d deleted=%d chunks_created=%d chunks_deleted=%d",
+            repository,
+            github_state.get("commit_sha"),
+            files_added,
+            files_updated,
+            len(deleted_files),
+            total_chunks,
+            deleted_chunks,
         )
 
-        chunks = split_documents(documents)
-
-        store_chunks(chunks)
-
-        db.save_file(
-            repository=repository,
-            file_path=file["path"],
-            language=file["language"],
-            content_hash=file["content_hash"]
+        return build_index_result(
+            repository,
+            "updated",
+            files_added=files_added,
+            files_updated=files_updated,
+            files_deleted=len(deleted_files),
+            chunks_created=total_chunks,
+            chunks_deleted=deleted_chunks
         )
 
-        total_chunks += len(chunks)
-
-    save_repository_state(github_state)
-
-    return build_index_result(
-        repository,
-        "updated",
-        files_added=files_added,
-        files_updated=files_updated,
-        files_deleted=len(deleted_files),
-        chunks_created=total_chunks,
-        chunks_deleted=deleted_chunks
-    )
+    except Exception:
+        logger.exception(
+            "Repository indexing failed: %s",
+            repository,
+        )
+        raise
 
 
 def build_index_result(

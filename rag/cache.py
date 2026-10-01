@@ -1,21 +1,21 @@
 import hashlib
 import json
-import os
+import logging
 
 import redis
-from dotenv import load_dotenv
+from core.config import settings
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-redis_url = os.getenv("REDIS_CACHE_URL")
-
-if not redis_url:
-    raise RuntimeError("Redis cache configuration is missing.")
-
-cache = redis.Redis.from_url(
-    redis_url,
-    decode_responses = True,
-)
+cache = None
+if settings.REDIS_CACHE_URL:
+    try:
+        cache = redis.Redis.from_url(
+            settings.REDIS_CACHE_URL,
+            decode_responses=True,
+        )
+    except Exception as err:
+        logger.warning("Failed to initialize Redis cache client: %s", err)
 
 CACHE_TTL = 3600
 
@@ -40,20 +40,29 @@ def build_cache_key(
     return f"repopilot:search:{query_hash}"
 
 def get_cached_result(key : str):
-    value = cache.get(key)
-
-    if value is None:
+    if cache is None:
         return None
-
-    return json.loads(value)
+    try:
+        value = cache.get(key)
+        if value is None:
+            return None
+        return json.loads(value)
+    except Exception as err:
+        logger.warning("Redis cache get failed (falling back to search): %s", err)
+        return None
 
 def set_cached_result(
         key : str,
         result,
         ttl : int = CACHE_TTL
 ):
-    cache.setex(
-        key,
-        ttl,
-        json.dumps(result)
-    )
+    if cache is None:
+        return
+    try:
+        cache.setex(
+            key,
+            ttl,
+            json.dumps(result)
+        )
+    except Exception as err:
+        logger.warning("Redis cache set failed: %s", err)
