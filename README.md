@@ -74,7 +74,7 @@ RepoPilot is an agentic AI assistant designed to navigate, understand, and answe
 - **Agentic Code Reasoning**: Uses a LangChain-powered agent configured with OpenRouter LLMs to intelligently decide whether to inspect repository metadata or perform semantic code search.
 - **Incremental Repository Indexing**: Computes SHA-256 content hashes per file and compares them against GitHub commit SHAs to only index newly added or modified source files. Automatically deletes stale chunks when files are removed.
 - **Semantic pgvector Retrieval**: Chunks code files and embeds them with `sentence-transformers/all-MiniLM-l6-v2`, performing cosine vector similarity search.
-- **Multi-Level Redis Caching**: Hashes the repository, commit SHA, and normalized query to cache search results, providing sub-millisecond responses on repeat queries with automatic cache invalidation on new commits.
+- **Multi-Level Redis Caching**: Hashes the repository, commit SHA, and normalized query to cache search results, providing fast responses on repeat queries with automatic cache invalidation on new commits.
 - **Controlled Search Guardrails**: Custom `SearchLimitMiddleware` caps search calls to at most 2 per user question and truncates oversized search outputs to protect LLM context windows.
 - **Asynchronous Webhook Worker**: Accepts GitHub `push` webhooks validated via HMAC-SHA256 signatures, dispatching background synchronization via Celery.
 - **Fail-Safe Resilience**: Gracefully handles transient Redis cache hiccups, malformed payloads, and external provider failures with detailed logging and sanitized API responses.
